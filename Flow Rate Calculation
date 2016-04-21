@@ -23,12 +23,8 @@ library(data.table)
 #fread by default create data table. Change the data table to data frame
 options(datatable.fread.datatable=FALSE)
 
-#Find and store the files which contains length in their names
+#Find and store the files which contains .mer in their names
 files<-list.files(pattern=".mer")
-
-
-#Skip the first row   fread_  skip=1
-#File has header 		fread header=true
 
 #i index of list li. Stores the number of the senario
 i<-1
@@ -47,8 +43,6 @@ i<-i+1
 
 #List all the objects in the R workspace 
 ls()
-
-flow_summary <-data.frame()
 
 
 library(plyr)
@@ -83,17 +77,8 @@ for(i in 1:length(li)){
 		colnames(dat)<-c("Interval","avg_headway","Scenario","Lane")
 		dat$flow<-(1/dat$avg_headway)*3600
 		dat<-dat[,c("Scenario","Lane","Interval","avg_headway","flow")]
-    
-		#dat<-data.table(dat)
-		#dat<-dat[,max_flow:=max(flow),by="Scenario"]
-    #dat<-unique(dat,by="Scenario")
-    #dat[,Interval:=NULL]
-    #dat[,avg_headway:=NULL]
-    #dat[,flow:=NULL]
-    #dat<-data.frame(dat)
+   
 		final_data<-rbind(final_data,dat)
-
-    
 		
 		time_stamp<-NULL
 		dat<-NULL

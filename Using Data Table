@@ -15,3 +15,5 @@ dt_fr<-data.frame(dt_fr)
 #Changing a data frame to data table
 dt_tab<-data.table(dt_fr)
 
+#Example of Aggregation using data table 
+

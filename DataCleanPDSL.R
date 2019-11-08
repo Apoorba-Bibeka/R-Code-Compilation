@@ -24,6 +24,9 @@ library(writexl)
 dir1="C:/Users/abibeka/OneDrive - Kittelson & Associates, Inc/Documents/PartTimeShoulderUse-Pete"
 setwd(dir1)
 dat<- read_excel("PDSL event log.xlsx")
+file1 = "L35WN48_1-1-2011_12-31-2012.csv"
+dat<- fread(file1)
+
 dat<-data.table(dat)
 str(dat)
 
@@ -50,6 +53,15 @@ table(dat$m1)  #All the "None" are removed from shoulder use message
 #********************************************************************************************************************
 data<-dat[,.(Description,m1,m2,m3)]
 dates<-dat$Eventdate
+
+if (file1== "L35WN48_1-1-2011_12-31-2012.csv") {
+  dat[, Eventdate:= sub("noon","12:00 PM",Eventdate)]
+  mask = (!is.na(strptime(dat$Eventdate,"%m/%d/%Y %I:%M %p",tz="UTC")))
+  data<-dat[mask,.(Description,m1,m2,m3)]
+  dates<-dat$Eventdate
+  dates = strptime(dat$Eventdate,"%m/%d/%Y %I:%M %p",tz="UTC")
+  dates = dates[!is.na(dates)]
+}
 # Use xts() to create smith
 dat1 <- xts(x = data, order.by =dates)
 #Get On, Off instead of all the status given for Shoulder Lane
@@ -78,7 +90,9 @@ rm(list=c("dates","data"))
 dates<-seq(round(min(index(dat2)),"hours"),round(max(index(dat2)),"hours"), by = "hours")
 data<-rep(NA, length(dates))
 LHSda1 <- xts(order.by=dates)
-length(LHSda1["2014"])
+length(LHSda1["2011"])
+length(LHSda1["2012"])
+
 #Insert the boundary values to orignal data
 MerDa<-merge(LHSda1,dat3,join="outer")
 head(MerDa)
@@ -99,8 +113,11 @@ MerDa4<-data.table(coredata(MerDa3))
 MerDa4$dt<-index(MerDa3)
 str(MerDa4)
 MerDa4[,LAGdt:=lapply(.SD, function(x) c(tail(as.character(x), -1L),NA)),.SDcols=c("dt")]
+MerDa4[,dt:=as.POSIXct(dt,format="%Y-%m-%d %H:%M:%OS",tz='UTC')]
+
 MerDa4[,LAGdt:=as.POSIXct(LAGdt,format="%Y-%m-%d %H:%M:%OS",tz='UTC')]
 MerDa4[,TmDiff:=difftime(LAGdt,dt,units="mins")]
+
 #If the Lane was open at the starting of an interval. It was open at the end also
 #If a lane was closed at the starting of an interval. It was closed at the end also
 #Take intervals where lane was open at start (ShLnStat= ==1)
@@ -117,8 +134,14 @@ MerDa6<-MerDa5[,.(dt,FullDate,Hr,CmSumON,PerTimeOn)]
 table(dat$m1)
 UnkDAT<-dat[,.(Eventdate,m1)]
 UnkDAT[,Unkn:=ifelse(toupper(m1)=="UNKNOWN",1,0)]
-UnkDAT[,Hr:=hour(Eventdate)]
-UnkDAT[,FullDate:=tstrsplit(Eventdate," ",keep=1)]
+if(file1 =="L35WN48_1-1-2011_12-31-2012.csv"){
+  UnkDAT[,Hr:=hour(strptime(Eventdate,"%m/%d/%Y %I:%M %p"))]   
+  UnkDAT[,FullDate:=tstrsplit(Eventdate," ",keep=1)]
+}else{
+  UnkDAT[,Hr:=hour(Eventdate)]
+  UnkDAT[,FullDate:=tstrsplit(Eventdate," ",keep=1)]
+}
+
 UnkDAT[,CmSumUNK:=sum(na.omit(Unkn)),by=list(Hr,FullDate)]
 UnkDAT<-unique(UnkDAT,by=c("Hr","FullDate"))
 UnkDAT<-UnkDAT[,.(Hr,FullDate,CmSumUNK)]
@@ -136,5 +159,5 @@ c(min(MerDa6$CmSumON),max(MerDa6$CmSumON))
 
 #Write to excel
 #********************************************************************************************************************
-file="PDSL_Log_Clean.xlsx"
+file="PDSL_Log_Clean2011-2012.xlsx"
 write_xlsx(MerDa6, file)
